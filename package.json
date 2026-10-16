@@ -1,0 +1,13 @@
+{
+  "name": "sentence-builder-master",
+  "version": "1.0.0",
+  "description": "基于 AI 的造句大乱斗教学小程序/网页",
+  "main": "api/evaluate.js",
+  "scripts": {
+    "start": "node api/evaluate.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
