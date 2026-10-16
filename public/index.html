@@ -75,10 +75,14 @@
             </div>
         </section>
 
-        <!-- 输入区域 -->
+        <!-- 输入区域（添加了字数实时统计） -->
         <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
             <div class="relative">
-                <textarea id="userInput" rows="4" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-slate-400" placeholder="请在这里写下你的造句..."></textarea>
+                <textarea id="userInput" rows="4" oninput="updateWordCount()" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-slate-400" placeholder="请在这里写下你的造句..."></textarea>
+                <!-- 实时字数显示 -->
+                <div class="absolute bottom-3 right-4 text-xs text-slate-400 select-none">
+                    已输入 <span id="charCount" class="font-bold text-indigo-600">0</span> 字
+                </div>
             </div>
             <button id="submitBtn" onclick="submitSentence()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-md flex justify-center items-center gap-2">
                 <i class="fa-solid fa-paper-plane"></i> 提交造句并评估
@@ -109,6 +113,12 @@
         let currentChallenge = '';
         let totalScore = 0;
 
+        // 实时统计字数功能
+        function updateWordCount() {
+            const input = document.getElementById('userInput').value;
+            document.getElementById('charCount').textContent = input.length;
+        }
+
         // 设置难度
         function setLevel(level, btnElement) {
             currentLevel = level;
@@ -132,6 +142,7 @@
             challengeSpan.textContent = '加载中...';
             document.getElementById('resultCard').classList.add('hidden');
             document.getElementById('userInput').value = '';
+            updateWordCount(); // 重置字数
 
             try {
                 const response = await fetch('/api/evaluate', {
@@ -145,8 +156,8 @@
                 }
 
                 const data = await response.json();
-                currentKeywords = data.keywords || ['春天', '温暖'];
-                currentChallenge = data.challenge || '写一句表达喜悦的句子';
+                currentKeywords = data.keywords || ['春天', '阳光'];
+                currentChallenge = data.challenge || '请写一句表达开心心情的句子';
 
                 keywordsDiv.innerHTML = currentKeywords.map(kw => 
                     `<span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium border border-indigo-100">${kw}</span>`
@@ -206,7 +217,7 @@
             }
         }
 
-        // 页面首次加载时自动获取题目
+        // 页面首次加载自动出题
         window.addEventListener('DOMContentLoaded', () => {
             fetchNewQuestion();
         });
