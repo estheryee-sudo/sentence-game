@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // 设置 CORS 跨域头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -8,102 +9,70 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: '仅支持 POST 请求' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { action, sentence, level, keywords, challenge } = req.body;
-  const API_KEY = process.env.AI_API_KEY;
-
-  if (!API_KEY) {
-    return res.status(500).json({ error: '环境变量未配置 AI_API_KEY，请在 Vercel 后台添加！' });
+  const apiKey = process.env.AI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: '未在 Vercel 配置 AI_API_KEY 环境变量' });
   }
+
+  const { action, level, keywords, challenge, userInput } = req.body || {};
 
   try {
-    // 1. AI 动态生成题目与词库
+    let prompt = '';
     if (action === 'generate_question') {
-      const prompt = `你是一个中小学语文名师。请为难度等级【${level}】动态生成一组造句练习题。
-要求：
-1. 生成 2-3 个符合该学段水平的关键词（包含常识词、成语或科技词汇）。
-2. 生成一个附加挑战（如指定句式、修辞手法或篇幅限制）。
-3. 必须严格以标准 JSON 格式输出，不要带有任何 Markdown 语法（如不要写 \`\`\`json）：
-{"keywords": ["词1", "词2"], "challenge": "附加挑战描述"}`;
+      prompt = `请为【${level || '容易'}】难度生成造句题目。输出格式必须严格为以下 JSON，不要包含任何其他文字或 markdown 格式：
+{"keywords": ["词语1", "词语2"], "challenge": "附加限制要求"}`;
+    } else if (action === 'evaluate_sentence') {
+      prompt = `评估造句：
+难度：${level}
+关键词：${(keywords || []).join(', ')}
+要求：${challenge}
+学生造句：${userInput}
 
-      const aiResponseText = await callGemini(prompt, API_KEY);
-      const cleanedJSON = cleanJSONString(aiResponseText);
-      return res.status(200).json(JSON.parse(cleanedJSON));
+请按以下 JSON 格式评估，不要带有 markdown 标记或多余文字：
+{"score": 85, "feedback": "详细点评及扣分项", "sampleSentence": "满分示范例句"}`;
+    } else {
+      return res.status(400).json({ error: '无效的 action 参数' });
     }
 
-    // 2. AI 诊断评估
-    if (action === 'evaluate_sentence') {
-      const prompt = `你是一个严格且温和的语文评估专家。
-请评估学生造句：
-- 学生造句：“${sentence}”
-- 难度等级：${level}
-- 必须包含词语：${keywords ? keywords.join('、') : ''}
-- 附加要求：${challenge || '无'}
+    // 使用官方 Gemini 1.5 Flash 接口
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-评估与扣分规则：
-1. 涉及暴力色情、不良引导直接判定 0 分。
-2. 滥用网络流行梗/不规范华语（如“绝绝子”等）扣 2 分。
-3. 错别字、标点误用每处扣 1 分。
-4. 语病/成分残缺扣 2 分。
-5. 未满足附加挑战扣 2 分。
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
 
-必须严格以标准 JSON 格式输出，不要带有任何 Markdown 语法（如不要写 \`\`\`json）：
-{
-  "score": 8,
-  "metrics": { "syntax": 80, "vocab": 85, "logic": 90, "rhetoric": 75 },
-  "deductions": ["扣分原因1（若无则填空数组）"],
-  "suggestions": "具体的修改建议与优点点评",
-  "exemplar": "优化后的满分示范例句",
-  "hints": [
-    "微调方向A：简单补全缺失的句式",
-    "微调方向B：替换网络梗，升华文章意境",
-    "微调方向C（框架）：填空模版..."
-  ]
-}`;
+    const data = await response.json();
 
-      const aiResponseText = await callGemini(prompt, API_KEY);
-      const cleanedJSON = cleanJSONString(aiResponseText);
-      return res.status(200).json(JSON.parse(cleanedJSON));
+    if (!response.ok) {
+      // 暴露具体的 Google API 报错信息
+      console.error("Gemini API Error:", data);
+      return res.status(response.status).json({ 
+        error: `Gemini API 拒绝响应: ${data.error?.message || JSON.stringify(data)}` 
+      });
     }
 
-    return res.status(400).json({ error: '未知 action 参数' });
+    // 提取生成的文本内容
+    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textResult) {
+      return res.status(500).json({ error: 'AI 未返回有效内容' });
+    }
 
-  } catch (error) {
-    console.error('Gemini API 处理错误:', error);
-    return res.status(500).json({ error: 'AI 服务响应异常，请重试' });
+    // 清理可能的 markdown 标记并解析 JSON
+    const cleanJsonStr = textResult.replace(/```json\n?|```/g, '').trim();
+    const parsedData = JSON.parse(cleanJsonStr);
+
+    return res.status(200).json(parsedData);
+
+  } catch (err) {
+    console.error("Server Error:", err);
+    // 详细返回本地报错
+    return res.status(500).json({ error: `后端处理失败: ${err.message}` });
   }
-}
-
-// 适配 Gemini 官方 REST API 接口
-async function callGemini(promptText, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: promptText }]
-      }],
-      generationConfig: {
-        responseMimeType: "application/json" // 强制 Gemini 输出 JSON
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Gemini API 报错: ${response.status} - ${errorData}`);
-  }
-
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
-}
-
-function cleanJSONString(str) {
-  return str.replace(/```json/g, '').replace(/```/g, '').trim();
 }
