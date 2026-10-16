@@ -37,8 +37,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '无效的 action 参数' });
     }
 
-    // 更新为最新稳定的 gemini-2.5-flash 模型路径
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // 使用官方当前推荐的最新 Gemini Flash 模型节点
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
