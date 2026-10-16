@@ -37,8 +37,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '无效的 action 参数' });
     }
 
-    // 使用官方 Gemini 1.5 Flash 接口
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 更新为最新稳定的 gemini-2.5-flash 模型路径
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -51,7 +51,6 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      // 暴露具体的 Google API 报错信息
       console.error("Gemini API Error:", data);
       return res.status(response.status).json({ 
         error: `Gemini API 拒绝响应: ${data.error?.message || JSON.stringify(data)}` 
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'AI 未返回有效内容' });
     }
 
-    // 清理可能的 markdown 标记并解析 JSON
+    // 清理 markdown 标记并解析 JSON
     const cleanJsonStr = textResult.replace(/```json\n?|```/g, '').trim();
     const parsedData = JSON.parse(cleanJsonStr);
 
@@ -72,7 +71,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("Server Error:", err);
-    // 详细返回本地报错
     return res.status(500).json({ error: `后端处理失败: ${err.message}` });
   }
 }
