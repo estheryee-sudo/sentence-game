@@ -25,32 +25,34 @@
 
     <main class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
 
+        <!-- 难度选择 -->
         <section class="glass-card p-5 rounded-2xl shadow-sm border border-slate-200">
             <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3"><i class="fa-solid fa-sliders mr-2"></i> 选择挑战学段难度</h2>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-2" id="levelContainer">
-                <button onclick="setLevel('容易')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700 active-level bg-indigo-50 border-indigo-500 text-indigo-600">
+                <button onclick="setLevel('容易', this)" class="level-btn p-3 text-center rounded-xl border transition-all font-medium bg-indigo-50 border-indigo-500 text-indigo-600">
                     <div>容易</div>
                     <div class="text-xs text-slate-400 mt-1">小学低年段</div>
                 </button>
-                <button onclick="setLevel('轻松')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                <button onclick="setLevel('轻松', this)" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
                     <div>轻松</div>
                     <div class="text-xs text-slate-400 mt-1">小学高年段</div>
                 </button>
-                <button onclick="setLevel('一般')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                <button onclick="setLevel('一般', this)" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
                     <div>一般</div>
                     <div class="text-xs text-slate-400 mt-1">初中阶段</div>
                 </button>
-                <button onclick="setLevel('困难')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                <button onclick="setLevel('困难', this)" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
                     <div>困难</div>
                     <div class="text-xs text-slate-400 mt-1">高中阶段</div>
                 </button>
-                <button onclick="setLevel('魔鬼')" class="level-btn p-3 text-center rounded-xl border border-rose-500 transition-all font-medium text-slate-700">
+                <button onclick="setLevel('魔鬼', this)" class="level-btn p-3 text-center rounded-xl border border-rose-500 transition-all font-medium text-slate-700">
                     <div class="text-rose-600 font-bold">😈 魔鬼</div>
                     <div class="text-xs text-slate-400 mt-1">竞赛级挑战</div>
                 </button>
             </div>
         </section>
 
+        <!-- 当前题目 -->
         <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="flex justify-between items-center mb-4">
                 <span class="text-xs font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full uppercase tracking-wider">当前题目</span>
@@ -63,7 +65,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-slate-500 text-sm">必须包含词语：</span>
                     <div id="keywordsList" class="flex gap-2 flex-wrap">
-                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium border border-indigo-100">正在生成题目...</span>
+                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium border border-indigo-100">加载中...</span>
                     </div>
                 </div>
                 <div class="flex items-start gap-2">
@@ -73,6 +75,141 @@
             </div>
         </section>
 
+        <!-- 输入区域 -->
         <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
             <div class="relative">
-                <textarea id="userInput" rows="4" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-
+                <textarea id="userInput" rows="4" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-slate-400" placeholder="请在这里写下你的造句..."></textarea>
+            </div>
+            <button id="submitBtn" onclick="submitSentence()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-md flex justify-center items-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i> 提交造句并评估
+            </button>
+        </section>
+
+        <!-- 评估结果显示区域 -->
+        <section id="resultCard" class="hidden glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-chart-bar text-indigo-600 mr-2"></i>AI 诊断报告</h3>
+                <span id="scoreBadge" class="text-2xl font-black text-indigo-600">-- 分</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-slate-600 mb-1">教师评估与反馈：</p>
+                <div id="feedbackText" class="text-slate-700 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">--</div>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-slate-600 mb-1">满分示范例句：</p>
+                <div id="sampleText" class="text-indigo-900 text-sm bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 font-medium">--</div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let currentLevel = '容易';
+        let currentKeywords = [];
+        let currentChallenge = '';
+        let totalScore = 0;
+
+        // 设置难度
+        function setLevel(level, btnElement) {
+            currentLevel = level;
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-50', 'border-indigo-500', 'text-indigo-600');
+                btn.classList.add('border-slate-200', 'text-slate-700');
+            });
+            if (btnElement) {
+                btnElement.classList.remove('border-slate-200', 'text-slate-700');
+                btnElement.classList.add('bg-indigo-50', 'border-indigo-500', 'text-indigo-600');
+            }
+            fetchNewQuestion();
+        }
+
+        // 联网生成新题目
+        async function fetchNewQuestion() {
+            const keywordsDiv = document.getElementById('keywordsList');
+            const challengeSpan = document.getElementById('challengeDesc');
+            
+            keywordsDiv.innerHTML = `<span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium animate-pulse">正在生成题目...</span>`;
+            challengeSpan.textContent = '加载中...';
+            document.getElementById('resultCard').classList.add('hidden');
+            document.getElementById('userInput').value = '';
+
+            try {
+                const response = await fetch('/api/evaluate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'generate_question', level: currentLevel })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentKeywords = data.keywords || ['春天', '温暖'];
+                currentChallenge = data.challenge || '写一句表达喜悦的句子';
+
+                keywordsDiv.innerHTML = currentKeywords.map(kw => 
+                    `<span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium border border-indigo-100">${kw}</span>`
+                ).join('');
+                challengeSpan.textContent = currentChallenge;
+
+            } catch (err) {
+                console.error("生成题目失败:", err);
+                keywordsDiv.innerHTML = `<span class="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg font-medium">获取失败</span>`;
+                challengeSpan.textContent = '无法连接到 AI 服务，请检查后端或刷新重试';
+            }
+        }
+
+        // 提交句子评估
+        async function submitSentence() {
+            const input = document.getElementById('userInput').value.trim();
+            if (!input) {
+                alert('请输入你的造句！');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> AI诊断中...`;
+
+            try {
+                const response = await fetch('/api/evaluate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'evaluate_sentence',
+                        level: currentLevel,
+                        keywords: currentKeywords,
+                        challenge: currentChallenge,
+                        userInput: input
+                    })
+                });
+
+                const data = await response.json();
+                
+                document.getElementById('resultCard').classList.remove('hidden');
+                document.getElementById('scoreBadge').textContent = `${data.score || 0} 分`;
+                document.getElementById('feedbackText').textContent = data.feedback || '无法读取诊断结果';
+                document.getElementById('sampleText').textContent = data.sampleSentence || '暂无示范';
+
+                if (data.score) {
+                    totalScore += data.score;
+                    document.getElementById('userScore').textContent = totalScore;
+                }
+
+            } catch (err) {
+                console.error("评估失败:", err);
+                alert("评估句子时发生错误，请重试");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> 提交造句并评估`;
+            }
+        }
+
+        // 页面首次加载时自动获取题目
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchNewQuestion();
+        });
+    </script>
+</body>
+</html>
