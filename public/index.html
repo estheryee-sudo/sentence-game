@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>造句大乱斗 - AI 教学辅助系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+
+    <header class="gradient-bg text-white py-4 px-6 shadow-md flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-graduation-cap text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wide">造句大乱斗 <span class="text-xs bg-amber-400 text-slate-900 px-2 py-0.5 rounded-full ml-2 font-normal">联网AI教学版</span></h1>
+        </div>
+        <div class="flex gap-4 text-sm font-medium">
+            <span class="bg-white/20 px-3 py-1 rounded-full"><i class="fa-solid fa-trophy text-amber-300 mr-1"></i> 我的积分: <span id="userScore">0</span></span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+
+        <section class="glass-card p-5 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3"><i class="fa-solid fa-sliders mr-2"></i> 选择挑战学段难度</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2" id="levelContainer">
+                <button onclick="setLevel('容易')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700 active-level bg-indigo-50 border-indigo-500 text-indigo-600">
+                    <div>容易</div>
+                    <div class="text-xs text-slate-400 mt-1">小学低年段</div>
+                </button>
+                <button onclick="setLevel('轻松')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                    <div>轻松</div>
+                    <div class="text-xs text-slate-400 mt-1">小学高年段</div>
+                </button>
+                <button onclick="setLevel('一般')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                    <div>一般</div>
+                    <div class="text-xs text-slate-400 mt-1">初中阶段</div>
+                </button>
+                <button onclick="setLevel('困难')" class="level-btn p-3 text-center rounded-xl border border-slate-200 hover:border-indigo-500 transition-all font-medium text-slate-700">
+                    <div>困难</div>
+                    <div class="text-xs text-slate-400 mt-1">高中阶段</div>
+                </button>
+                <button onclick="setLevel('魔鬼')" class="level-btn p-3 text-center rounded-xl border border-rose-500 transition-all font-medium text-slate-700">
+                    <div class="text-rose-600 font-bold">😈 魔鬼</div>
+                    <div class="text-xs text-slate-400 mt-1">竞赛级挑战</div>
+                </button>
+            </div>
+        </section>
+
+        <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-xs font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full uppercase tracking-wider">当前题目</span>
+                <button onclick="fetchNewQuestion()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-rotate"></i> 换一题 (联网生成)
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500 text-sm">必须包含词语：</span>
+                    <div id="keywordsList" class="flex gap-2 flex-wrap">
+                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-medium border border-indigo-100">正在生成题目...</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="text-slate-500 text-sm whitespace-nowrap">附加限制要求：</span>
+                    <span id="challengeDesc" class="text-slate-700 text-sm font-medium">加载中...</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="relative">
+                <textarea id="userInput" rows="4" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-
