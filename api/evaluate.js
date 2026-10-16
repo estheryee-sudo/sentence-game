@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // 设置 CORS 跨域头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -22,13 +21,28 @@ export default async function handler(req, res) {
   try {
     let prompt = '';
     if (action === 'generate_question') {
-      prompt = `请为【${level || '容易'}】难度生成造句题目。输出格式必须严格为以下 JSON，不要包含任何其他文字或 markdown 格式：
-{"keywords": ["词语1", "词语2"], "challenge": "附加限制要求"}`;
+      // 随机种子主题，确保词库丰富不重复
+      const randomTopics = ['自然天气', '日常生活', '动物世界', '科幻探索', '校园趣味', '情感心理', '奇幻冒险'];
+      const topic = randomTopics[Math.floor(Math.random() * randomTopics.length)];
+
+      prompt = `你是一个优秀的语文老师。请为【${level || '容易'}】难度随机生成一组全新的造句题目。
+当前参考主题视角：${topic}。
+
+难度设计指导：
+- 【容易】难度（小学低年段）：给 2 个常见、生动但不俗套的词语。要求提示尽量亲切通俗（如：表达一种心情、描述一个场景）。
+- 【轻松】难度（小学高年段）：给 2-3 个词语。限制要求中**必须包含以下一项趣味要求**（随机选一个）：
+  * 感情基调：悬疑、反转、温暖、幽默或感动
+  * 修辞手法：使用比喻、拟人、排比或夸张
+  * 句式或逻辑：使用“虽然……但是……”、“不仅……而且……”、或者使用反问句/疑问句
+
+严格输出 JSON 格式（不要多余文字或 markdown 标记）：
+{"keywords": ["词语1", "词语2"], "challenge": "具体的限制要求"}`;
+
     } else if (action === 'evaluate_sentence') {
       prompt = `评估造句：
 难度：${level}
 关键词：${(keywords || []).join(', ')}
-要求：${challenge}
+限制要求：${challenge}
 学生造句：${userInput}
 
 请按以下 JSON 格式评估，不要带有 markdown 标记或多余文字：
@@ -37,7 +51,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '无效的 action 参数' });
     }
 
-    // 备用模型池：优先请求 3.8-flash，如果拥堵自动降级到 3.5-flash-lite / 3.6-flash
     const candidateModels = [
       'gemini-3.8-flash',
       'gemini-3.5-flash-lite',
@@ -47,7 +60,6 @@ export default async function handler(req, res) {
     let lastError = null;
     let data = null;
 
-    // 轮询尝试可用模型
     for (const model of candidateModels) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
@@ -62,7 +74,7 @@ export default async function handler(req, res) {
 
       if (response.ok) {
         data = result;
-        break; // 请求成功，跳出循环
+        break;
       } else {
         console.warn(`模型 ${model} 响应失败，尝试备用模型...`, result);
         lastError = result;
@@ -75,13 +87,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 提取生成的文本内容
     const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResult) {
       return res.status(500).json({ error: 'AI 未返回有效内容' });
     }
 
-    // 清理 markdown 标记并解析 JSON
     const cleanJsonStr = textResult.replace(/```json\n?|```/g, '').trim();
     const parsedData = JSON.parse(cleanJsonStr);
 
