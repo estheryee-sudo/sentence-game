@@ -37,23 +37,41 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '无效的 action 参数' });
     }
 
-    // 使用官方当前推荐的最新 Gemini Flash 模型节点
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+    // 备用模型池：优先请求 3.8-flash，如果拥堵自动降级到 3.5-flash-lite / 3.6-flash
+    const candidateModels = [
+      'gemini-3.8-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.6-flash'
+    ];
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    let lastError = null;
+    let data = null;
 
-    const data = await response.json();
+    // 轮询尝试可用模型
+    for (const model of candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
 
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return res.status(response.status).json({ 
-        error: `Gemini API 拒绝响应: ${data.error?.message || JSON.stringify(data)}` 
+      const result = await response.json();
+
+      if (response.ok) {
+        data = result;
+        break; // 请求成功，跳出循环
+      } else {
+        console.warn(`模型 ${model} 响应失败，尝试备用模型...`, result);
+        lastError = result;
+      }
+    }
+
+    if (!data) {
+      return res.status(503).json({ 
+        error: `Gemini API 繁忙: ${lastError?.error?.message || '所有模型均处于高峰期，请稍后再试'}` 
       });
     }
 
