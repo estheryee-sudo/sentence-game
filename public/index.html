@@ -52,6 +52,22 @@
             </div>
         </section>
 
+        <!-- 主题选择（包含不限主题） -->
+        <section class="glass-card p-5 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3"><i class="fa-solid fa-tags mr-2"></i> 选择词汇主题（可选）</h2>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2" id="topicContainer">
+                <button onclick="setTopic('不限主题', this)" class="topic-btn p-2 text-center rounded-lg border text-xs font-medium bg-indigo-50 border-indigo-500 text-indigo-600">🎲 不限主题</button>
+                <button onclick="setTopic('日常休闲', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">☕ 日常</button>
+                <button onclick="setTopic('校园青春', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🎓 校园</button>
+                <button onclick="setTopic('自然四季', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🌲 自然</button>
+                <button onclick="setTopic('奇幻冒险', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🪄 奇幻</button>
+                <button onclick="setTopic('恐怖悬疑', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🕵️ 悬疑</button>
+                <button onclick="setTopic('赛博科幻', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🚀 科幻</button>
+                <button onclick="setTopic('治愈温暖', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">☀️ 温暖</button>
+                <button onclick="setTopic('古风武侠', this)" class="topic-btn p-2 text-center rounded-lg border border-slate-200 hover:border-indigo-500 text-xs font-medium text-slate-700">🗡️ 武侠</button>
+            </div>
+        </section>
+
         <!-- 当前题目 -->
         <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="flex justify-between items-center mb-4">
@@ -75,11 +91,10 @@
             </div>
         </section>
 
-        <!-- 输入区域（添加了字数实时统计） -->
+        <!-- 输入区域（带字数统计） -->
         <section class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
             <div class="relative">
                 <textarea id="userInput" rows="4" oninput="updateWordCount()" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-slate-400" placeholder="请在这里写下你的造句..."></textarea>
-                <!-- 实时字数显示 -->
                 <div class="absolute bottom-3 right-4 text-xs text-slate-400 select-none">
                     已输入 <span id="charCount" class="font-bold text-indigo-600">0</span> 字
                 </div>
@@ -109,17 +124,16 @@
 
     <script>
         let currentLevel = '容易';
+        let currentTopic = '不限主题';
         let currentKeywords = [];
         let currentChallenge = '';
         let totalScore = 0;
 
-        // 实时统计字数功能
         function updateWordCount() {
             const input = document.getElementById('userInput').value;
             document.getElementById('charCount').textContent = input.length;
         }
 
-        // 设置难度
         function setLevel(level, btnElement) {
             currentLevel = level;
             document.querySelectorAll('.level-btn').forEach(btn => {
@@ -133,7 +147,19 @@
             fetchNewQuestion();
         }
 
-        // 联网生成新题目
+        function setTopic(topic, btnElement) {
+            currentTopic = topic;
+            document.querySelectorAll('.topic-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-50', 'border-indigo-500', 'text-indigo-600');
+                btn.classList.add('border-slate-200', 'text-slate-700');
+            });
+            if (btnElement) {
+                btnElement.classList.remove('border-slate-200', 'text-slate-700');
+                btnElement.classList.add('bg-indigo-50', 'border-indigo-500', 'text-indigo-600');
+            }
+            fetchNewQuestion();
+        }
+
         async function fetchNewQuestion() {
             const keywordsDiv = document.getElementById('keywordsList');
             const challengeSpan = document.getElementById('challengeDesc');
@@ -142,13 +168,17 @@
             challengeSpan.textContent = '加载中...';
             document.getElementById('resultCard').classList.add('hidden');
             document.getElementById('userInput').value = '';
-            updateWordCount(); // 重置字数
+            updateWordCount();
 
             try {
                 const response = await fetch('/api/evaluate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'generate_question', level: currentLevel })
+                    body: JSON.stringify({ 
+                        action: 'generate_question', 
+                        level: currentLevel,
+                        topic: currentTopic 
+                    })
                 });
 
                 if (!response.ok) {
@@ -171,7 +201,6 @@
             }
         }
 
-        // 提交句子评估
         async function submitSentence() {
             const input = document.getElementById('userInput').value.trim();
             if (!input) {
@@ -190,6 +219,7 @@
                     body: JSON.stringify({
                         action: 'evaluate_sentence',
                         level: currentLevel,
+                        topic: currentTopic,
                         keywords: currentKeywords,
                         challenge: currentChallenge,
                         userInput: input
@@ -217,7 +247,6 @@
             }
         }
 
-        // 页面首次加载自动出题
         window.addEventListener('DOMContentLoaded', () => {
             fetchNewQuestion();
         });
