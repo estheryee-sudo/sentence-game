@@ -16,24 +16,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: '未在 Vercel 配置 AI_API_KEY 环境变量' });
   }
 
-  const { action, level, keywords, challenge, userInput } = req.body || {};
+  const { action, level, topic, keywords, challenge, userInput } = req.body || {};
 
   try {
     let prompt = '';
     if (action === 'generate_question') {
-      // 随机种子主题，确保词库丰富不重复
-      const randomTopics = ['自然天气', '日常生活', '动物世界', '科幻探索', '校园趣味', '情感心理', '奇幻冒险'];
-      const topic = randomTopics[Math.floor(Math.random() * randomTopics.length)];
+      const topicPrompt = (topic && topic !== '不限主题') 
+        ? `围绕【${topic}】这个主题视角` 
+        : `从日常生活、自然天气、奇幻冒险、校园生活、科幻探索、情感表达等任意主题中全库随机发散`;
 
-      prompt = `你是一个优秀的语文老师。请为【${level || '容易'}】难度随机生成一组全新的造句题目。
-当前参考主题视角：${topic}。
+      prompt = `你是一个优秀的语文老师。请为【${level || '容易'}】难度、${topicPrompt}，随机生成一组全新的造句题目。
 
 难度设计指导：
-- 【容易】难度（小学低年段）：给 2 个常见、生动但不俗套的词语。要求提示尽量亲切通俗（如：表达一种心情、描述一个场景）。
-- 【轻松】难度（小学高年段）：给 2-3 个词语。限制要求中**必须包含以下一项趣味要求**（随机选一个）：
+- 【容易】难度（小学低年段）：给 2 个常见、生动但不俗套的词语。要求提示尽量亲切通俗（如：描述一个场景或心情）。
+- 【轻松】难度（小学高年段）：给 2-3 个词语。限制要求中必须随机包含以下一项要求：
   * 感情基调：悬疑、反转、温暖、幽默或感动
   * 修辞手法：使用比喻、拟人、排比或夸张
-  * 句式或逻辑：使用“虽然……但是……”、“不仅……而且……”、或者使用反问句/疑问句
+  * 句式逻辑：使用“虽然……但是……”、“不仅……而且……”、或者使用反问句/疑问句
+- 【一般/困难/魔鬼】：按学段逐步提升词汇深度与逻辑/文采限制。
 
 严格输出 JSON 格式（不要多余文字或 markdown 标记）：
 {"keywords": ["词语1", "词语2"], "challenge": "具体的限制要求"}`;
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
     } else if (action === 'evaluate_sentence') {
       prompt = `评估造句：
 难度：${level}
+主题：${topic || '不限主题'}
 关键词：${(keywords || []).join(', ')}
 限制要求：${challenge}
 学生造句：${userInput}
